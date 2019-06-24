@@ -2,6 +2,7 @@
 # vars file for tomcat-dyn
 tomcat_version: 8
 tomcat_release_version: 8.5.42
+tomcat_service_name: tomcat
 user_name: admin
 password: admin
-http_port: 18081
+http_port: 18082

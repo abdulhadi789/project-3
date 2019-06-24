@@ -2,19 +2,14 @@
    - name: Check java installation.
      command: "java -version"
      register: java_version
-   - name: Check javac installation.
-     command: "javac -version"
-     register: javac_version
+     ignore_errors: True
  
    - name: Install Java if not installed.
      yum:
-      name: "{{ packages }}" 
+      name: java-1.8.0-openjdk.x86_64 
       state: present
-     vars:
-      packages:
-      - java-1.8.0-openjdk-devel.x86_64 
-      - java-1.8.0-openjdk.x86_64
-     when: (java_version.rc != 0) or (javac_version.rc !=0)
+     when: 
+      - java_version.rc != 0 
    
    - name: Creating a directory
      file:
@@ -79,7 +74,7 @@
    - name: Copy the tomcat.service file from controller to /etc/systemd/system/
      template:
       src: tomcat.service
-      dest: /etc/systemd/system/ 
+      dest: /etc/systemd/system/{{ tomcat_service_name }}.service 
    
    - name: Just force systemd to reread config
      systemd:
@@ -106,12 +101,6 @@
      notify:
       - restart tomcat      
  
-   - name: Wait until service get started
-     wait_for:
-      port: "{{ http_port }}"
-      state: started
-      timeout: 10
-    
    - name: Check the downloaded file.
      stat:
       path: /tmp/apache-tomcat-{{ tomcat_release_version }}.tar.gz
