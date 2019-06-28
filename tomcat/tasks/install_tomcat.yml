@@ -1,0 +1,116 @@
+---
+   - name: Check java installation.
+     command: "java -version"
+     register: java_version
+     ignore_errors: True
+ 
+   - name: Install Java if not installed.
+     yum:
+      name: java-1.8.0-openjdk.x86_64 
+      state: present
+     when: 
+      - java_version.rc != 0 
+   
+   - name: Creating a directory
+     file:
+      path: /opt/tomcat-{{ tomcat_version }}-{{ tomcat_release_version }}
+      state: directory
+     register: file
+
+   - name: Downloading tomcat from url
+     get_url:
+      url: http://mirrors.estointernet.in/apache/tomcat/tomcat-{{ tomcat_version }}/v{{ tomcat_release_version }}/bin/apache-tomcat-{{ tomcat_release_version }}.tar.gz
+      dest: /tmp
+     register: downloaded
+     when: file.changed == true
+   
+   - name: Extracting the file
+     unarchive:
+      src: /tmp/apache-tomcat-{{ tomcat_release_version }}.tar.gz
+      dest: /opt/tomcat-{{ tomcat_version }}-{{ tomcat_release_version }}
+      remote_src: yes
+      extra_opts:
+       --strip-components=1
+     when: downloaded.changed == true     
+   
+   - name: Adding tomcat group
+     group:
+      name: tomcat
+      state: present 
+   
+   - name: Creating tomcat user with default home directory /opt/tomcat-{{ tomcat_version }}-{{ tomcat_release_version }}
+     user:
+      name: tomcat
+      group: tomcat
+      shell: /bin/nologin
+      home: /opt/tomcat-{{ tomcat_version }}-{{ tomcat_release_version }}
+      createhome: no
+   
+   - name: Giving tomcat group ownership for entire directory
+     file: 
+      path: /opt/tomcat-{{ tomcat_version }}-{{ tomcat_release_version }}       
+      state: directory
+      group: tomcat
+      recurse: yes 
+   
+   - name: Giving tomcat group read and execute access to the conf directory 
+     file: 
+      path: /opt/tomcat-{{ tomcat_version }}-{{ tomcat_release_version }}/conf
+      state: directory 
+      recurse: yes
+      mode: g=rx
+
+   - name: Make tomcat user the owner of the following directory
+     file:
+      path: /opt/tomcat-{{ tomcat_version}}-{{ tomcat_release_version }}/{{ item }}
+      owner: tomcat
+      recurse: yes
+     with_items:
+      - webapps
+      - work
+      - logs
+      - temp
+    
+   - name: Copy the tomcat.service file from controller to /etc/systemd/system/
+     template:
+      src: tomcat.service
+      dest: /etc/systemd/system/{{ tomcat_service_name }}.service 
+   
+   - name: Just force systemd to reread config
+     systemd:
+      daemon_reload: yes
+   
+   - name: changing port 8080 to {{ http_port }} required number.
+     template:
+      src: server.xml
+      dest: /opt/tomcat-{{ tomcat_version }}-{{ tomcat_release_version }}/conf/server.xml
+     notify:
+      - restart tomcat
+   
+   - name: Adding User and Password with manager-script role
+     template:
+      src: tomcat-users.xml
+      dest: /opt/tomcat-{{ tomcat_version }}-{{ tomcat_release_version }}/conf/tomcat-users.xml
+     notify:
+      - restart tomcat
+   
+   - name: Uncomment line in context.xml
+     copy:
+      src: context.xml
+      dest: /opt/tomcat-{{ tomcat_version }}-{{ tomcat_release_version }}/webapps/manager/META-INF/context.xml
+     notify:
+      - restart tomcat      
+ 
+   - name: Check the downloaded file.
+     stat:
+      path: /tmp/apache-tomcat-{{ tomcat_release_version }}.tar.gz
+     register: tarfile
+   
+   - name: Delete the downloaded file if it is present.
+     file:
+      path: /tmp/apache-tomcat-{{ tomcat_release_version }}.tar.gz
+      state: absent
+     when: tarfile.stat.exists == true
+
+
+...

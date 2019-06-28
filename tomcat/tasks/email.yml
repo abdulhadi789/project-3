@@ -1,0 +1,11 @@
+---
+- name: Mail if deployed is successful 
+  mail:
+   host: smtp.gmail.com
+   port: 587
+   username: shakeerahamed05@gmail.com
+   password: $h@kEer*7842
+   to: Shakeer Ahamed <shakeer16590@gmail.com>
+   subject: Deployment-report
+   body: System {{ ansible_hostname }} has been successfully deployed.
+     

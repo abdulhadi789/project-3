@@ -1,0 +1,11 @@
+---
+# tasks file for sample
+ - name: copy
+   copy:
+    src: "{{ item }}"
+    dest: /opt/tomcat-{{ tomcat_version }}-{{ tomcat_release_version }}/webapps/
+   with_fileglob:
+    - '{{ jenkins_workspace}}/webapp/target/webapp*'
+   notify:
+    - restart tomcat
+    
