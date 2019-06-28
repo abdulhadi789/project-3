@@ -3,6 +3,7 @@
 tomcat_version: 8
 tomcat_release_version: 8.5.42
 tomcat_service_name: tomcat
+jenkins_workspace:
 user_name: admin
 password: admin
 http_port: 18082
